@@ -50,8 +50,11 @@ def validate_model(
         ymean = yval.mean()
         calibration = abs(ypred_mean / ymean - 1)
 
-        logger.info(f"AUC: {auc:.4f}, R2: {r2:.4f}, Calibration: {calibration:.4f}")
-        logger.info(f"ypred.mean(): {ypred_mean:.4f}, yval.mean(): {ymean:.4f}")
+        print("auc: ", round(auc, 4))
+        print("r2: ", round(r2, 4))
+        print("calibration: ", round(calibration, 4))
+        print("ypred.mean(): ", round(ypred.mean(), 4))
+        print("yval.mean(): ", round(yval.mean(), 4))
 
         return auc, r2, ypred_mean, ymean, calibration
     except Exception as e:

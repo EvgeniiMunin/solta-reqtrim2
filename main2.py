@@ -93,9 +93,6 @@ def time_based_splits2(paths, num_splits=6, train_hours=6, val_hours=1):
         train_df = pd.concat([load_data(f) for f in train_files], ignore_index=True)
         val_df = pd.concat([load_data(f) for f in val_files], ignore_index=True)
 
-        train_df = train_df.sample(frac=0.05).reset_index(drop=True)
-        val_df = val_df.sample(frac=0.05).reset_index(drop=True)
-
         train_df["ts"] = pd.to_datetime(train_df["req_ts"])
         val_df["ts"] = pd.to_datetime(val_df["req_ts"])
 
@@ -132,11 +129,49 @@ if __name__ == "__main__":
         start_time = time.time()
 
         print(f'Train shape: {train_df.shape}, Validation shape: {val_df.shape}')
+
+        train_df = train_df.sample(frac=0.05).reset_index(drop=True)
+        val_df = val_df.sample(frac=0.05).reset_index(drop=True)
+
         x_train, x_val, y_train, y_val = hash_feats(train_df, val_df, feats)
         
         end_time = time.time()
         duration = end_time - start_time
-        print(f"duration: {duration:.2f} seconds")
+        print(f"hash duration: {duration:.2f} seconds")
+
+        break
+
+        model = cb.CatBoostClassifier(
+            iterations=400,
+            learning_rate=0.1,
+            depth=6,
+            l2_leaf_reg=3,  # Regularization term
+            eval_metric='AUC',  # Metric for evaluation during training
+            random_seed=42,
+            #task_type="GPU",  # Indicate that training should be done on GPU
+            verbose=200  # Output the training progress every 200 iterations
+        )
+
+        start_time = time.time()
+
+        model.fit(
+            xtrain, ytrain,
+            eval_set=(xval, yval),
+            use_best_model=True
+        )
+
+        end_time = time.time()
+        duration = end_time - start_time
+        print(f"train duration: {duration:.2f} seconds")
+
+        ypred = model.predict_proba(xval)[:, 1]
+        auc, r2, ypred_mean, ymean, calibration = validate_model(yval, ypred)
+        val_auc.append(auc)
+        val_r2.append(r2)
+        val_ypred_mean.append(ypred_mean)
+        val_ymean.append(ymean)
+        val_calibration.append(calibration)
+
         break
 
     #metrics = train_and_validate(df, feats, config)
