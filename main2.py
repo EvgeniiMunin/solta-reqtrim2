@@ -74,14 +74,41 @@ def validation_metrics(metrics: Dict[str, list]):
     metrics_df.head(50)
 
 
+def time_based_splits2(paths, num_splits=6, train_hours=6, val_hours=1):
+    for fold in range(num_splits):
+        # Calculate the index for training and validation split
+        train_start_idx = fold
+        train_end_idx = train_start_idx + train_hours
+        val_end_idx = train_end_idx + val_hours
+
+        # Ensure we do not go out of the list's range
+        if val_end_idx > len(paths):
+            break
+
+        # Select paths for training and validation
+        train_files = paths[train_start_idx:train_end_idx]
+        val_files = paths[train_end_idx:val_end_idx]
+
+        # Read training and validation data
+        train_df = pd.concat([load_data(f) for f in train_files], ignore_index=True)
+        val_df = pd.concat([load_data(f) for f in val_files], ignore_index=True)
+
+        train_df = train_df.sample(frac=0.05).reset_index(drop=True)
+        val_df = val_df.sample(frac=0.05).reset_index(drop=True)
+
+        train_df["ts"] = pd.to_datetime(train_df["req_ts"])
+        val_df["ts"] = pd.to_datetime(val_df["req_ts"])
+
+        print(f"Fold {fold}")
+        print(train_df["ts"].min(), train_df["ts"].max(), train_df.shape)
+        print(val_df["ts"].min(), val_df["ts"].max(), val_df.shape)
+
+        yield train_df, val_df
 
 if __name__ == "__main__":
-    start_time = time.time()
-    df = load_data('data/log_13h_rand10.csv')
-    logger.info("DataFrame loaded and validated successfully.")
-    end_time = time.time()
-    duration = end_time - start_time
-    print(f"read csv duration: {duration:.2f} seconds")
+    paths = [
+        f'data/rand10/log_2024-04-25 {hour:02}.csv' for hour in range(13)
+    ]
 
     feats = [
         "ssp_id", "dsp_id", "creative_type", "dsp_deal_id", "floor",
@@ -101,5 +128,16 @@ if __name__ == "__main__":
         'hours_val': hours_val,
     }
 
-    metrics = train_and_validate(df, feats,config)
+    for train_df, val_df in time_based_splits2(paths):
+        start_time = time.time()
+
+        print(f'Train shape: {train_df.shape}, Validation shape: {val_df.shape}')
+        x_train, x_val, y_train, y_val = hash_feats(train_df, val_df, feats)
+        
+        end_time = time.time()
+        duration = end_time - start_time
+        print(f"duration: {duration:.2f} seconds")
+        break
+
+    #metrics = train_and_validate(df, feats, config)
     #validation_metrics(metrics)

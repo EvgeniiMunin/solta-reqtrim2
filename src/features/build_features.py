@@ -3,6 +3,7 @@ import numpy as np
 from typing import Dict, Tuple
 import pymmh3 as mmh3
 import catboost
+from sklearn.feature_extraction import FeatureHasher
 
 import logging
 
@@ -29,22 +30,34 @@ def compute_hashing_trick(
 
     return pd.DataFrame(result)
 
+def apply_feature_hashing(df: pd.DataFrame, n_features: int = 2 ** 10) -> pd.DataFrame:
+  hasher = FeatureHasher(n_features=n_features, input_type="string")
+  hashed_features = hasher.transform(df.astype(str).values)
+  hashed_df = pd.DataFrame(hashed_features.toarray())
+
+  hashed_df.columns = [f'feature_{i}' for i in range(hashed_df.shape[1])]
+  return hashed_df
+
 
 def hash_feats(
         train_df: pd.DataFrame,
         val_df: pd.DataFrame,
         feats: list
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-    unique_values = train_df[feats].nunique()
+    #unique_values = train_df[feats].nunique()
 
-    train_df_hashed = compute_hashing_trick(train_df[feats], unique_values)
-    val_df_hashed = compute_hashing_trick(val_df[feats], unique_values)
+    #train_df_hashed = compute_hashing_trick(train_df[feats], unique_values)
+    #val_df_hashed = compute_hashing_trick(val_df[feats], unique_values)
 
-    train_df_hashed["bid_state"] = train_df["bid_state"]
-    val_df_hashed["bid_state"] = val_df["bid_state"]
+    train_df_hashed = apply_feature_hashing(train_df[feats])
+    val_df_hashed = apply_feature_hashing(val_df[feats])
+    feats = train_df_hashed.columns
 
-    logger.info("unique_values: \n", train_df[feats].nunique(), "\n")
-    logger.info("unique_values_train_feats: \n", train_df_hashed.nunique(), "\n")
+    train_df_hashed["bid_state"] = train_df.reset_index(drop=True)["bid_state"]
+    val_df_hashed["bid_state"] = val_df.reset_index(drop=True)["bid_state"]
+
+    #logger.info("unique_values: \n", train_df[feats].nunique(), "\n")
+    #logger.info("unique_values_train_feats: \n", train_df_hashed.nunique(), "\n")
 
     x_train = train_df_hashed[feats]
     x_val = val_df_hashed[feats]
