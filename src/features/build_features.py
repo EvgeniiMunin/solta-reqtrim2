@@ -40,8 +40,8 @@ def apply_feature_hashing(df: pd.DataFrame, n_features: int = 2 ** 10) -> pd.Dat
 
 
 def hash_feats(
-        train_df: pd.DataFrame,
-        val_df: pd.DataFrame,
+        traindf: pd.DataFrame,
+        valdf: pd.DataFrame,
         feats: list
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     #unique_values = train_df[feats].nunique()
@@ -49,22 +49,22 @@ def hash_feats(
     #train_df_hashed = compute_hashing_trick(train_df[feats], unique_values)
     #val_df_hashed = compute_hashing_trick(val_df[feats], unique_values)
 
-    train_df_hashed = apply_feature_hashing(train_df[feats])
-    val_df_hashed = apply_feature_hashing(val_df[feats])
-    feats = train_df_hashed.columns
+    traindf_hashed = apply_feature_hashing(traindf[feats])
+    valdf_hashed = apply_feature_hashing(valdf[feats])
+    feats = traindf_hashed.columns
 
-    train_df_hashed["bid_state"] = train_df.reset_index(drop=True)["bid_state"]
-    val_df_hashed["bid_state"] = val_df.reset_index(drop=True)["bid_state"]
+    traindf_hashed["bid_state"] = traindf.reset_index(drop=True)["bid_state"]
+    valdf_hashed["bid_state"] = valdf.reset_index(drop=True)["bid_state"]
 
     #logger.info("unique_values: \n", train_df[feats].nunique(), "\n")
     #logger.info("unique_values_train_feats: \n", train_df_hashed.nunique(), "\n")
 
-    x_train = train_df_hashed[feats]
-    x_val = val_df_hashed[feats]
-    y_train = train_df_hashed["bid_state"].isin(["ok", "ok-proxy"]).astype(int)
-    y_val = val_df_hashed["bid_state"].isin(["ok", "ok-proxy"]).astype(int)
+    xtrain = traindf_hashed[feats]
+    xval = valdf_hashed[feats]
+    ytrain = traindf_hashed["bid_state"].isin(["ok", "ok-proxy"]).astype(int)
+    yval = valdf_hashed["bid_state"].isin(["ok", "ok-proxy"]).astype(int)
 
-    logger.info(f"Train bid rate: {y_train.sum()}, {y_train.mean() * 100:.4f}%")
-    logger.info(f"Validation bid rate: {y_val.sum()}, {y_val.mean() * 100:.4f}%")
+    logger.info(f"Train bid rate: {ytrain.sum()}, {ytrain.mean() * 100:.4f}%")
+    logger.info(f"Validation bid rate: {yval.sum()}, {yval.mean() * 100:.4f}%")
 
-    return x_train, x_val, y_train, y_val
+    return xtrain, xval, ytrain, yval

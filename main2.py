@@ -61,17 +61,17 @@ def train_and_validate(
     return val_metrics
 
 
-def validation_metrics(metrics: Dict[str, list]):
-    iterations = list(range(len(metrics["auc"])))
-    metrics_df = pd.DataFrame({
-        "iteration": iterations,
-        "auc": metrics["auc"],
-        "r2": metrics["r2"],
-        "ypred_mean": metrics["ypred_mean"],
-        "ymean": metrics["ymean"],
-        "calibration": metrics["calibration"]
-    })
-    metrics_df.head(50)
+#def validation_metrics(metrics: Dict[str, list]):
+#    iterations = list(range(len(metrics["auc"])))
+#    metrics_df = pd.DataFrame({
+#        "iteration": iterations,
+#        "auc": metrics["auc"],
+#        "r2": metrics["r2"],
+#        "ypred_mean": metrics["ypred_mean"],
+#        "ymean": metrics["ymean"],
+#        "calibration": metrics["calibration"]
+#    })
+#    print(metrics_df.head(50))
 
 
 def time_based_splits2(paths, num_splits=6, train_hours=6, val_hours=1):
@@ -104,7 +104,7 @@ def time_based_splits2(paths, num_splits=6, train_hours=6, val_hours=1):
 
 if __name__ == "__main__":
     paths = [
-        f'data/rand10/log_2024-04-25 {hour:02}.csv' for hour in range(13)
+        f'data/rand100/log_2024-04-25 {hour:02}.csv' for hour in range(13)
     ]
 
     feats = [
@@ -125,21 +125,21 @@ if __name__ == "__main__":
         'hours_val': hours_val,
     }
 
-    for train_df, val_df in time_based_splits2(paths):
+    val_auc, val_r2, val_ypred_mean, val_ymean, val_calibration = [], [], [], [], []
+
+    for traindf, valdf in time_based_splits2(paths):
         start_time = time.time()
 
-        print(f'Train shape: {train_df.shape}, Validation shape: {val_df.shape}')
+        #traindf = traindf.sample(frac=0.05).reset_index(drop=True)
+        #valdf = valdf.sample(frac=0.05).reset_index(drop=True)
 
-        train_df = train_df.sample(frac=0.05).reset_index(drop=True)
-        val_df = val_df.sample(frac=0.05).reset_index(drop=True)
+        print(f'Train shape: {traindf.shape}, Validation shape: {valdf.shape}')
 
-        x_train, x_val, y_train, y_val = hash_feats(train_df, val_df, feats)
+        xtrain, xval, ytrain, yval = hash_feats(traindf, valdf, feats)
         
         end_time = time.time()
         duration = end_time - start_time
         print(f"hash duration: {duration:.2f} seconds")
-
-        break
 
         model = cb.CatBoostClassifier(
             iterations=400,
@@ -175,4 +175,14 @@ if __name__ == "__main__":
         break
 
     #metrics = train_and_validate(df, feats, config)
-    #validation_metrics(metrics)
+
+    iterations = list(range(len(val_auc)))
+    metrics = pd.DataFrame({
+        "iteration": iterations,
+        "auc": val_auc,
+        "r2": val_r2,
+        "ypred_mean": val_ypred_mean,
+        "ymean": val_ymean,
+        "calibration": val_calibration
+    })
+    print(metrics.head(50))

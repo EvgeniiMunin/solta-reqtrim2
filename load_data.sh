@@ -17,7 +17,7 @@ do
 	next_hour=$(date -d "@$((current_epoch + 3600))" +"%Y-%m-%d %H:00:00")
 
 	# Run the query for the current hour
-	clickhouse client --host 10.12.0.1 --port 9000 --user stat --password 'ePDhoXA3Sow1mWRc' --database kimberlite_dev --query="SELECT * FROM ml_flat_log WHERE req_ts BETWEEN '$current_hour' AND '$next_hour' AND murmurHash3_32(req_id) % 10 = 0" --format=CSVWithNames > "data/rand10/log_${current_hour:0:13}.csv"
+	clickhouse client --host 10.12.0.1 --port 9000 --user stat --password 'ePDhoXA3Sow1mWRc' --database kimberlite_dev --query="SELECT * FROM ml_flat_log WHERE req_ts BETWEEN '$current_hour' AND '$next_hour' AND murmurHash3_32(req_id) % 100 = 0" --format=CSVWithNames > "data/rand100/log_${current_hour:0:13}.csv"
 
 	# Move to the next hour
 	current_epoch=$((current_epoch + 3600))

@@ -8,6 +8,7 @@ import pyarrow.csv as pv
 import pandas as pd
 import logging
 #from pydantic import BaseModel, validator, ValidationError
+import pymmh3 as mmh3
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,6 +20,18 @@ def load_data(file_path: str) -> pd.DataFrame:
         table = pv.read_csv(file_path)
         df = table.to_pandas()
 
+        #df = df.sample(frac=0.05).reset_index(drop=True)
+        df["hash_reqid"] = df["req_id"].apply(lambda x: mmh3.hash(str(x)))
+        sampled_df = df[df["hash_reqid"] % 2 == 0].reset_index(drop=True)
+
+        labels = df["bid_state"].isin(["ok", "ok-proxy"]).astype(int)
+        sampled_labels = sampled_df["bid_state"].isin(["ok", "ok-proxy"]).astype(int)
+
+        print(f"{file_path} df.shape: ", df.shape)
+        print(f"{file_path} sampled_df.shape: ", sampled_df.shape, "\n")
+        print(f"labels bid rate: {labels.sum()}, {labels.mean() * 100:.4f}%")
+        print(f"sampled_labels bid rate: {sampled_labels.sum()}, {sampled_labels.mean() * 100:.4f}%")
+
         #df.columns = ['req_ts', 'req_id', 'track.ssp_id', 'dsp_id', 'creative_type',
         #              'bid_state', 'dsp_deal_id', 'first_dsp_dealid', 'floor', 'imp', 'str',
         #              'vtr', 'ctr', 'vctr', 'ts', 'id', 'ssp_id', 'site_id', 'domain_id',
@@ -26,11 +39,9 @@ def load_data(file_path: str) -> pd.DataFrame:
         #              'page_domain', 'page_deep2', 'page_deep3', 'region_id', 'device_id',
         #              'os_id', 'browser_id']
 
-        print("df.shape: ", df.shape)
-
         #df_dict = df.to_dict(orient="list")
         #validated_data = InputDataSchema(**df_dict)
-        return df
+        return sampled_df
 
     #except ValidationError as e:
     #    logger.error("Data validation error: %s", str(e))
