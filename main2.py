@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
     val_auc, val_r2, val_ypred_mean, val_ymean, val_calibration = [], [], [], [], []
 
-    for traindf, valdf in time_based_splits2(paths):
+    for i, (traindf, valdf) in enumerate(time_based_splits2(paths)):
         start_time = time.time()
 
         #traindf = traindf.sample(frac=0.05).reset_index(drop=True)
@@ -142,9 +142,9 @@ if __name__ == "__main__":
         print(f"hash duration: {duration:.2f} seconds")
 
         model = cb.CatBoostClassifier(
-            iterations=400,
-            learning_rate=0.1,
-            depth=6,
+            iterations=600,
+            learning_rate=0.2,
+            depth=7,
             l2_leaf_reg=3,  # Regularization term
             eval_metric='AUC',  # Metric for evaluation during training
             random_seed=42,
@@ -172,7 +172,8 @@ if __name__ == "__main__":
         val_ymean.append(ymean)
         val_calibration.append(calibration)
 
-        break
+        serialize_predictor(model, f"models/catboost_6h_v1_fold{i}.pkl")
+        serialize_onnx(model, f"models/catboost_6h_v1_fold{i}.onnx")
 
     #metrics = train_and_validate(df, feats, config)
 
