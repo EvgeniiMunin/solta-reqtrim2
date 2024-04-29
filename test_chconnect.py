@@ -5,8 +5,8 @@ def fetch_data_from_clickhouse(start_time: str, end_time: str) -> pd.DataFrame:
     client = get_client(
         host='10.12.0.1',
         port=8123,
-        username='stat',
-        password='ePDhoXA3Sow1mWRc',
+        username='username',
+        password='pwd',
         database='kimberlite_dev'
     )
 
